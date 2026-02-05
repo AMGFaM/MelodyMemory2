@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Memory Melody</title>
+<style>
+:root{
+  --bg:#0b1020;
+  --panel:#0f1b2b;
+  --white:#f7f7f7;
+  --black:#111318;
+  --accent:#ffd166;
+  --ok:#22c55e;
+  --bad:#ef4444;
+  --glass: rgba(255,255,255,0.04);
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  min-height:100vh;
+  background:linear-gradient(180deg,var(--bg),#061022);
+  font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial;
+  color:var(--white);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+.wrap{
+  width:100%;
+  max-width:980px;
+  background:var(--panel);
+  border-radius:12px;
+  padding:16px;
+  box-shadow:0 10px 30px rgba(2,6,23,0.6)
+}
+header{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+h1{font-size:18px;margin:0}
+
+/* CONTROLES */
+.controls{
+  margin-left:auto;
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.ctrl-group{display:flex;gap:8px;align-items:center;background:var(--glass);padding:6px;border-radius:8px;border:1px solid rgba(255,255,255,0.04)}
+.btn{
+  background:var(--accent);
+  border:none;
+  color:#071226;
+  padding:8px 12px;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:700;
+}
+select{
+  background:transparent;
+  color:var(--white);
+  border:none;
+  outline:none;
+  padding:6px;
+  font-weight:700;
+}
+.select-wrap{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,0.9);font-weight:600}
+
+.status{display:flex;gap:8px;align-items:center}
+.display{min-width:56px;background:#071226;padding:6px 10px;border-radius:8px;text-align:center;font-weight:700}
+
+/* TECLADO */
+.keyboard{
+  position:relative;
+  height:312px; /* AUMENTADO 30% */
+  margin-top:14px;
+  border-radius:8px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
+  overflow:visible;
+  user-select:none;
+  padding:10px;
+}
+
+/* Blancas */
+.white-row{display:flex;height:100%;gap:6px;}
+.key.white{
+  flex:1 1 0;
+  background:linear-gradient(180deg,#fff,#f3f3f3);
+  border-radius:6px;
+  border:1px solid rgba(0,0,0,0.12);
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  padding-bottom:10px;
+  position:relative;
+  z-index:1;
+  box-shadow:0 6px 18px rgba(2,6,23,0.3);
+  cursor:pointer;
+}
+.keyLabel{font-weight:700;color:rgba(0,0,0,0.6)}
+
+/* Negras */
+.key.black{
+  position:absolute;
+  width:10%;
+  height:53%;
+  top:8px;
+  background:linear-gradient(180deg,#111,#060606);
+  border-radius:6px;
+  z-index:3;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  padding-bottom:8px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.6);
+  cursor:pointer;
+}
+.key.black .keyLabel{color:#fff;font-weight:700;font-size:12px}
+
+/* efecto pulsado */
+.key.playing{transform:translateY(6px);box-shadow:inset 0 0 24px rgba(255,209,102,0.08)}
+
+/* footer */
+.footer{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:13px;color:rgba(255,255,255,0.8);flex-wrap:wrap}
+
+/* responsive */
+@media (max-width:720px){
+  .keyboard{height:234px;} /* 180 * 1.30 */
+  .key.black{height:60%;width:14%}
+  .controls{gap:6px}
+  .ctrl-group{padding:4px}
+}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Simon Piano — Juego de memoria</h1>
+
+      <div class="controls">
+        <div class="ctrl-group select-wrap">
+          <label for="difficulty">Notas</label>
+          <select id="difficulty">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3" selected>3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+          </select>
+        </div>
+
+        <div class="ctrl-group select-wrap">
+          <label for="speed">Velocidad</label>
+          <select id="speed">
+            <option value="1000">Lento</option>
+            <option value="700" selected>Normal</option>
+            <option value="450">Rápido</option>
+          </select>
+        </div>
+
+        <button id="startBtn" class="btn">INICIAR</button>
+		<button id="repeatBtn" class="btn">🔁 Repetir</button>
+		<button id="tonicaBtn" class="btn">🎧Tónica</button>
+
+        <div class="status">
+          <div>Nivel</div>
+          <div id="level" class="display">0</div>
+        </div>
+
+        <div class="status">
+          <div>Puntaje</div>
+          <div id="score" class="display">0</div>
+        </div>
+		
+		<div class="ctrl-group select-wrap">
+  <label for="maxSeq">Secuencias</label>
+  <select id="maxSeq">
+    <option value="3">3</option>
+    <option value="5" selected>5</option>
+    <option value="7">7</option>
+    <option value="10">10</option>
+  </select>
+</div>
+        <div class="status">
+          <div>Récord</div>
+          <div id="best" class="display">0</div>
+        </div>
+		<div class="status">
+  <div>Errores</div>
+  <div id="errors" class="display">0</div>
+</div>
+      </div>
+    </header>
+
+    <div id="keyboard" class="keyboard" aria-label="Teclado de piano" role="application">
+      <div id="whiteRow" class="white-row"></div>
+    </div>
+
+    <div class="footer">
+      <div>Toca libremente o repite el dictado.</div>
+      <div id="message">&nbsp;</div>
+    </div>
+  </div>
+
+<script>
+// ----------------- LÓGICA -----------------
+
+/* Se agrega C2 y C#2 */
+const noteOrder = [
+  'C','C#','D','D#','E','F','F#','G','G#','A','A#','B',
+  'C2'
+];
+
+/* Se agrega C2 al teclado visual */
+const whiteNotes = ['C','D','E','F','G','A','B','C2'];
+
+let audioMap = {};
+
+let sequence = [];
+let playerInput = [];
+let allowInput = false;
+let playingBack = false;
+let score = 0;
+let best = 0;
+let tonicaAudio;
+let errors = 0;
+let currentSequence = 0;
+let maxSequences = 5;
+let endGameAudio;
+
+// elementos
+const whiteRow = document.getElementById('whiteRow');
+const keyboard = document.getElementById('keyboard');
+const startBtn = document.getElementById('startBtn');
+const speedSel = document.getElementById('speed');
+const diffSel = document.getElementById('difficulty');
+const messageEl = document.getElementById('message');
+const levelEl = document.getElementById('level');
+const scoreEl = document.getElementById('score');
+const bestEl = document.getElementById('best');
+const errorsEl = document.getElementById('errors');
+const repeatBtn = document.getElementById('repeatBtn');
+const maxSeqSel = document.getElementById('maxSeq');
+
+function setMessage(txt,color=''){ messageEl.textContent = txt; messageEl.style.color = color; }
+function setLevel(n){ levelEl.textContent = n; }
+function setScore(n){ scoreEl.textContent = n; }
+function setBest(n){ bestEl.textContent = n; }
+function setErrors(n){ errorsEl.textContent = n; }
+
+// ---- Construir teclado ----
+function buildKeyboard(){
+  whiteRow.innerHTML = '';
+
+  for(const n of whiteNotes){
+    const k = document.createElement('div');
+    k.className = 'key white';
+    k.dataset.note = n;
+    k.innerHTML = `<div class="keyLabel">${n}</div>`;
+    whiteRow.appendChild(k);
+  }
+
+  requestAnimationFrame(()=> {
+    [...keyboard.querySelectorAll('.key.black')].forEach(x=>x.remove());
+
+    const blackMap = [
+      {note:'C#',  leftBetween:['C','D'], offset:0.62},
+      {note:'D#',  leftBetween:['D','E'], offset:0.62},
+      {note:'F#',  leftBetween:['F','G'], offset:0.62},
+      {note:'G#',  leftBetween:['G','A'], offset:0.62},
+      {note:'A#',  leftBetween:['A','B'], offset:0.62},
+
+    ];
+
+    const whites = Array.from(whiteRow.querySelectorAll('.key.white'));
+    const whitePositions = whites.map(w => ({
+      left: w.offsetLeft,
+      width: w.offsetWidth
+    }));
+
+    for(const m of blackMap){
+      const leftIndex = whiteNotes.indexOf(m.leftBetween[0]);
+      if(leftIndex < 0 || leftIndex+1 >= whitePositions.length) continue;
+
+      const L = whitePositions[leftIndex];
+      const R = whitePositions[leftIndex+1];
+      const center = L.left + (R.left - L.left)*m.offset + L.width*0.08;
+
+      const black = document.createElement('div');
+      black.className = 'key black';
+      black.dataset.note = m.note;
+      black.innerHTML = `<div class="keyLabel">${m.note}</div>`;
+      black.style.left = center + 'px';
+      keyboard.appendChild(black);
+    }
+
+    keyboard.querySelectorAll('.key').forEach(k=>{
+      k.removeEventListener('click', onKeyClick);
+      k.addEventListener('click', onKeyClick);
+    });
+  });
+}
+
+function onKeyClick(e){
+  const note = e.currentTarget.dataset.note;
+  if(!note) return;
+
+  playNote(note, true);
+
+  if(allowInput) {
+    handleInput(note);
+  }
+}
+
+// ---- Audio ----
+function playNote(note, visual=true){
+  const a = audioMap[note];
+  if(a){
+    try{ a.currentTime = 0; }catch(e){}
+    a.play().catch(()=>{});
+  }
+  if(visual){
+    const key = keyboard.querySelector(`[data-note="${note}"]`);
+    if(key){
+      key.classList.add('playing');
+      setTimeout(()=>key.classList.remove('playing'),180);
+    }
+  }
+}
+
+// ---- Secuencia ----
+function newSequence(){
+  sequence = [];
+  const len = parseInt(diffSel.value,10) || 3;
+
+  const pool = [...noteOrder]; // copia
+  for(let i=0;i<len && pool.length>0;i++){
+    const r = Math.floor(Math.random()*pool.length);
+    sequence.push(pool.splice(r,1)[0]);
+  }
+
+  playerInput = [];
+  setLevel(len);
+}
+
+// ---- Reproducir ----
+async function playSequence(){
+  playingBack = true;
+  allowInput = false;
+  setMessage('Escucha…','#ffd166');
+
+  const delay = parseInt(speedSel.value,10) || 600;
+
+  for(const n of sequence){
+    const a = audioMap[n];
+    if(a){
+      try{ a.currentTime = 0; }catch{}
+      a.play().catch(()=>{});
+    }
+    await wait(delay);
+  }
+
+  // ⬅ SIN PAUSA
+  playingBack = false;
+  allowInput = true;
+  setMessage('Tu turno');
+}
+
+// ---- Manejo respuesta ----
+function handleInput(note){
+  if(!allowInput) return;
+
+  const currentIndex = playerInput.length;
+
+  // ¿Es la nota correcta en ese punto de la secuencia?
+  if(note === sequence[currentIndex]){
+    playerInput.push(note);
+
+    // ¿Ya completó toda la secuencia?
+    if(playerInput.length === sequence.length){
+      allowInput = false;
+
+      score += sequence.length;
+      if(score > best) best = score;
+
+      setScore(score);
+      setBest(best);
+      setMessage('✔ Secuencia completa','var(--ok)');
+
+      setTimeout(()=>{
+  nextRound();
+}, 900);
+    }
+
+  } else {
+    // ❌ error, pero NO se termina el juego
+    errors++;
+setErrors(errors);
+setMessage(`✘ Error`, 'var(--bad)');
+  }
+}
+
+function showFeedbackDots(){
+  const parts = sequence.map((s,i)=>{
+    const correct = playerInput[i] === s;
+    return correct 
+      ? `<span style="color:${getCssVar('--ok')};font-size:20px">●</span>`
+      : `<span style="color:${getCssVar('--bad')};font-size:20px">●</span>`;
+  });
+  messageEl.innerHTML = parts.join(' ');
+}
+
+function getCssVar(name){
+  return getComputedStyle(document.documentElement).getPropertyValue(name) || '#000';
+}
+
+// ---- START ----
+function startGame(){
+  score = 0;
+  errors = 0;
+  currentSequence = 0;
+  maxSequences = parseInt(maxSeqSel.value, 10) || 5;
+
+  setScore(0);
+  setErrors(0);
+  setLevel(0);
+
+  nextRound();
+}
+function nextRound(){
+  currentSequence++;
+
+  if(currentSequence > maxSequences){
+  allowInput = false;
+  setMessage('🎉 Juego terminado', 'var(--ok)');
+
+  if(endGameAudio){
+    endGameAudio.currentTime = 0;
+
+    setTimeout(() => {
+      endGameAudio.play().catch(()=>{});
+    }, 200); // entra encima de la última nota
+  }
+
+  return;
+}
+
+  setLevel(currentSequence);
+  newSequence();
+
+  setTimeout(() => {
+    playSequence();
+  }, 700);
+}
+
+
+// ---- Carga de audios ----
+(async function loadAudios(){
+  audioMap = {};
+
+  for(const n of noteOrder){
+    const file = n.includes('#') ? n.replace('#','s')+'.mp3' : n+'.mp3';
+    const a = new Audio(file);
+    const ok = await new Promise(res=>{
+      a.addEventListener('canplaythrough', ()=>res(true), {once:true});
+      a.addEventListener('error', ()=>res(false), {once:true});
+    });
+    if(ok) audioMap[n] = new Audio(file);
+  }
+tonicaAudio = new Audio('conduccion.mp3');
+endGameAudio = new Audio('fin.mp3');
+  setMessage('Listo. Presiona INICIAR');
+})();
+
+// ---- UTIL ----
+function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+// eventos
+startBtn.addEventListener('click', startGame);
+
+repeatBtn.addEventListener('click', () => {
+  if(sequence.length === 0 || playingBack) return;
+
+  allowInput = false;     // bloquea entrada
+  playerInput = [];      // reinicia intento
+  playSequence();        // repite dictado
+});
+
+document.getElementById('tonicaBtn').addEventListener('click', () => {
+  if(tonicaAudio){
+    tonicaAudio.currentTime = 0;
+    tonicaAudio.play().catch(()=>{});
+  }
+});
+window.addEventListener('resize', ()=> buildKeyboard());
+
+// construir teclado inicial
+buildKeyboard();
+</script>
+
+</body>
+</html>
